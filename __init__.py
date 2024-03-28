@@ -27,11 +27,10 @@ def owner_or_permissions(**perms):
     return commands.check(extended_check)
 
 
-def _save_version_sync(zip_data: bytes, folder_path: Path) -> None:
+def _save_version_sync(zip_location: Path, folder_path: Path) -> None:
     folder_path.mkdir(parents=True, exist_ok=True)
-    with io.BytesIO(zip_data) as zip_buffer:
-        with zipfile.ZipFile(zip_buffer) as zip_file:
-            zip_file.extractall(folder_path)
+    with zipfile.ZipFile(zip_location) as zip_file:
+        zip_file.extractall(folder_path)
 
     old_root = next(p for p in folder_path.iterdir() if p.is_dir())
     for path in old_root.iterdir():
@@ -42,8 +41,8 @@ def _save_version_sync(zip_data: bytes, folder_path: Path) -> None:
     old_root.rmdir()
 
 
-async def save_version_assets(zip_data: bytes, folder_path: Path) -> None:
-    await asyncio.to_thread(_save_version_sync, zip_data, folder_path)
+async def save_version_assets(zip_location: Path, folder_path: Path) -> None:
+    await asyncio.to_thread(_save_version_sync, zip_location, folder_path)
 
 
 def get_resources(root: Path) -> Generator[Path, None, None]:
@@ -166,10 +165,14 @@ class ResourcePackMaker(breadcord.helpers.HTTPModuleCog):
                 await message.edit(content="Failed to create resource pack.")
                 return
 
-            zip_data = await response.read()
+            self.logger.info("Saving resource pack.")
+            root = self.module.storage_path / f"{message.id}"
+            root.mkdir(parents=True, exist_ok=True)
+            async with aiofiles.open(root / "pack.zip", "wb") as file:
+                async for chunk in response.content.iter_any():
+                    await file.write(chunk)
 
-        self.logger.info("Saving resource pack.")
-        await save_version_assets(zip_data, self.module.storage_path / f"{message.id}" / "original_assets")
+        await save_version_assets(root / "pack.zip", root / "original_assets")
 
         view = ResourcePackCreatorView(self.module.storage_path, module_cog=self)
         await message.edit(content="Resource pack created.", view=view)
