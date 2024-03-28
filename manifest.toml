@@ -1,0 +1,16 @@
+manifest_version = 1
+
+[module]
+name = "Resource Pack Maker"
+id = "resource_pack_maker"
+description = "Allows a community to colaborate on a minecraft resource pack."
+version = "0.0.1"
+license = "GNU GPLv3"
+authors = ["Fripe"]
+requirements = [
+    "aiohttp",
+    "aiofiles",
+    "async-unzip",
+    "pillow",
+    "pydub",
+]
