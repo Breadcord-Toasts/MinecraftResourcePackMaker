@@ -73,7 +73,10 @@ def process_image(image: io.BytesIO, original_path: Path) -> io.BytesIO:
 
     with Image.open(image).convert("RGBA") as img:
         new_x, new_y = img.size
-
+        if new_x / original_x > new_y / original_y:
+            new_x = new_y * original_x / original_y
+        else:
+            new_y = new_x * original_y / original_x
         new_x = round(new_x // original_x) * original_x
         new_y = round(new_y // original_y) * original_y
         img.resize((new_x, new_y))
