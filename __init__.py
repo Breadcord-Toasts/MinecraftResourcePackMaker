@@ -8,6 +8,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 import aiofiles
+import aiohttp
 import discord
 import pydub
 from PIL import Image
@@ -127,7 +128,7 @@ async def create_final_zip(pack_root_path: Path) -> io.BytesIO:
     return zip_data
 
 
-class ResourcePackMaker(breadcord.helpers.HTTPModuleCog):
+class ResourcePackMaker(breadcord.module.ModuleCog):
     async def cog_load(self) -> None:
         await super().cog_load()
         self.bot.add_view(ResourcePackCreatorView(self.module.storage_path, module_cog=self))
@@ -160,17 +161,21 @@ class ResourcePackMaker(breadcord.helpers.HTTPModuleCog):
         file_url = file_url.removesuffix("/") + "/zipball/refs/heads/" + cleaned_version
 
         message = await ctx.send("Creating resource pack...")
-        async with self.session.get(file_url) as response:
-            if response.status != 200:
-                await message.edit(content="Failed to create resource pack.")
-                return
 
-            self.logger.info("Saving resource pack.")
-            root = self.module.storage_path / f"{message.id}"
-            root.mkdir(parents=True, exist_ok=True)
-            async with aiofiles.open(root / "pack.zip", "wb") as file:
-                async for chunk in response.content.iter_any():
-                    await file.write(chunk)
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60 * 20)) as session:  # 20 minutes
+            async with session.get(file_url) as response:
+                if response.status != 200:
+                    await message.edit(content="Failed to create resource pack.")
+                    return
+
+                self.logger.info(f"Saving resource pack for version {version}")
+                root = self.module.storage_path / f"{message.id}"
+                root.mkdir(parents=True, exist_ok=True)
+                async with aiofiles.open(root / "pack.zip", "wb") as file:
+                    # 0.25 GB
+                    num_bytes = 1024 ** 3 // 4
+                    while chunk := await response.content.read(num_bytes):
+                        await file.write(chunk)
 
         await save_version_assets(root / "pack.zip", root / "original_assets")
 
@@ -260,7 +265,13 @@ class ResourcePackMaker(breadcord.helpers.HTTPModuleCog):
 
         if not tuple(get_resources(original_root)):
             finished = await create_final_zip(self.module.storage_path / f"{manager_message.id}" / "new_assets")
-            await manager_message.edit(content="All files submitted!", view=None)
+            await manager_message.edit(
+                content="Resource pack ready.",
+                attachments=[
+                    discord.File(finished, filename="resource_pack.zip")
+                ],
+                view=None,
+            )
             return
 
 
