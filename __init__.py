@@ -177,7 +177,9 @@ class ResourcePackMaker(breadcord.module.ModuleCog):
                     while chunk := await response.content.read(num_bytes):
                         await file.write(chunk)
 
+        self.logger.info(f"Unzipping resource pack for version {version}")
         await save_version_assets(root / "pack.zip", root / "original_assets")
+        self.logger.info(f"Resource pack created for version {version}")
 
         view = ResourcePackCreatorView(self.module.storage_path, module_cog=self)
         await message.edit(content="Resource pack created.", view=view)
