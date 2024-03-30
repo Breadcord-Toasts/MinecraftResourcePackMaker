@@ -79,7 +79,7 @@ def process_image(image: io.BytesIO, original_path: Path) -> io.BytesIO:
             new_y = new_x * original_y / original_x
         new_x = round(new_x // original_x) * original_x
         new_y = round(new_y // original_y) * original_y
-        img.resize((new_x, new_y))
+        img = img.resize((new_x, new_y))
 
         converted = io.BytesIO()
         img.save(converted, format="PNG")
