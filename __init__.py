@@ -142,10 +142,6 @@ class ResourcePackMaker(breadcord.module.ModuleCog):
         await super().cog_load()
         self.bot.add_view(ResourcePackCreatorView(self.module.storage_path, module_cog=self))
 
-    async def cog_unload(self) -> None:
-        await super().cog_unload()
-        self.bot.remove_view(ResourcePackCreatorView)
-
     def get_db_for(self, message: discord.Message) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
         con = sqlite3.connect(self.module.storage_path / f"{message.id}" / "assigned_files.db",)
         cur = con.cursor()
