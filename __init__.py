@@ -405,5 +405,5 @@ class ResourcePackCreatorView(discord.ui.View):
         await self.assign_file(sound_file, interaction)
 
 
-async def setup(bot: breadcord.Bot):
-    await bot.add_cog(ResourcePackMaker("resource_pack_maker"))
+async def setup(bot: breadcord.Bot, module: breadcord.module.Module) -> None:
+    await bot.add_cog(ResourcePackMaker(module.id))
